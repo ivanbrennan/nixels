@@ -1,0 +1,59 @@
+#! /usr/bin/env bash
+
+set -eu
+
+pids_dir="$PWD/nix/pids/queue-client"
+
+add_client() {
+    mkdir -p "$pids_dir" && touch "$pids_dir/$PPID"
+    add_redis
+}
+
+add_redis() {
+    local \
+        data_dir="$PWD/nix/redis/$REDIS_PORT/" \
+        logfile="$PWD/log/redis_$REDIS_PORT.log" \
+        pidfile="$PWD/tmp/pids/redis_$REDIS_PORT.pid"
+
+    mkdir -p \
+        "$data_dir" \
+        "${logfile%/*}" \
+        "${pidfile%/*}"
+
+    if redis_is_stopped
+    then
+        redis-server --daemonize yes \
+                     --port $REDIS_PORT \
+                     --dir "$data_dir" \
+                     --logfile "$logfile" \
+                     --pidfile "$pidfile"
+    fi
+}
+
+redis_is_stopped() {
+    ! redis-cli -p $REDIS_PORT ping
+} >/dev/null 2>&1
+
+remove_client() {
+    rm "$pids_dir/$PPID"
+
+    if [ -n "$(find "$pids_dir" -prune -empty)" ]
+    then
+        stop_redis
+    fi
+}
+
+stop_redis() {
+    redis-cli -p $REDIS_PORT save >/dev/null
+    redis-cli -p $REDIS_PORT shutdown
+}
+
+case "$1" in
+    add)
+        add_client ;;
+    remove)
+        remove_client ;;
+    *)
+        echo "Usage: ${BASH_SOURCE[0]##*/} {add | remove}"
+        exit 1 ;;
+esac
