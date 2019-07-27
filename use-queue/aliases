@@ -1,0 +1,1 @@
+alias redis-cli='redis-cli -p $REDIS_PORT'

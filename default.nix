@@ -1,5 +1,8 @@
 { pkgs ? import <nixpkgs> { } }:
 
+with pkgs;
+
 {
-  use-db = pkgs.callPackage ./use-db { };
+  use-db = callPackage ./use-db { };
+  use-queue = callPackage ./use-queue { };
 }
